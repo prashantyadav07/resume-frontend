@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 
 // Base URL for API - adjust as needed for your environment
-const API_BASE_URL = 'https://resume-backend-nine.vercel.app/api/v1';
+const API_BASE_URL = 'https://resume-backend-2zxa.onrender.com/api/v1';
 
 export default function PDFUploader() {
   const [file, setFile] = useState(null);

@@ -268,7 +268,7 @@ export default function PDFUploader() {
       <div className="w-full max-w-6xl mx-auto p-4 md:p-6 relative z-10">
         <div className="text-center mb-8">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-2 inline-block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            MINI RESUME ANALYZER
+             RESUME ANALYZER
           </h2>
           <div className="h-1 w-32 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
         </div>

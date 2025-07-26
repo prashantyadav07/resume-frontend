@@ -1,997 +1,238 @@
-import { useState, useEffect, useRef } from 'react';
+// --- START OF FILE src/component/Home.jsx (FINAL, CLEANED & NO SLIDER) ---
+
+import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { 
-  FileText, 
-  Upload, 
-  CheckCircle, 
-  AlertCircle, 
-  LogIn, 
-  LogOut, 
-  User,
-  BarChart4,
-  Clock,
-  ChevronRight,
-  Github,
-  Trash2,
-  Search,
-  X,
-  RefreshCw
+    Upload, FileText, CheckCircle, AlertCircle, Trash2, Loader2, LogIn, LogOut,
+    User, Github, ChevronRight, BarChart4, Cpu, Palette, TabletSmartphone 
 } from 'lucide-react';
-import { 
-  Alert, 
-  AlertDescription, 
-  AlertTitle 
-} from '@/components/ui/alert';
-import { 
-  Button 
-} from '@/components/ui/button';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog';
-import {
-  Progress
-} from '@/components/ui/progress';
-import { 
-  Input 
-} from '@/components/ui/input';
-import { 
-  Badge 
-} from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge"; 
+import toast from 'react-hot-toast';
+import axios from 'axios';
+import { auth } from '../firebase';
+import logoImage from '../assets/logo.png'; 
 
-// Base URL for API
-const API_BASE_URL = 'https://resume-backend-2zxa.onrender.com/api/v1';
+// --- AXIOS API SETUP ---
+const API_BASE_URL = 'https://resume-backend-2zxa.onrender.com/api/v1'; 
+const api = axios.create({ baseURL: API_BASE_URL });
+api.interceptors.request.use(async (config) => {
+    const token = await auth.currentUser?.getIdToken();
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+});
 
-export default function ResumeAnalyzerHomepage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [notification, setNotification] = useState(null);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [userName, setUserName] = useState('User');
-  const [loginUsername, setLoginUsername] = useState('');
-
-  // PDFUploader states
-  const [file, setFile] = useState(null);
-  const [progress, setProgress] = useState(0);
-  const [uploading, setUploading] = useState(false);
-  const [uploaded, setUploaded] = useState(false);
-  const [error, setError] = useState(null);
-  const [documents, setDocuments] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [analysisData, setAnalysisData] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const fileInputRef = useRef(null);
-  const [uploadedDocId, setUploadedDocId] = useState(null);
-
-  // Fetch documents when logged in
-  useEffect(() => {
-    if (isLoggedIn) {
-      fetchDocuments();
-    }
-  }, [isLoggedIn]);
-
-  // Auto-analyze after upload if we have a document ID
-  useEffect(() => {
-    if (uploadedDocId) {
-      analyzeDocument(uploadedDocId);
-      setUploadedDocId(null);
-    }
-  }, [uploadedDocId]);
-
-  const signInDirect = () => {
-    if (!loginUsername.trim()) {
-      setNotification({
-        type: 'error',
-        message: 'Please enter a username'
-      });
-      setTimeout(() => setNotification(null), 3000);
-      return;
-    }
-    setIsUploading(true);
-    setTimeout(() => {
-      setIsLoggedIn(true);
-      setUserName(loginUsername.trim());
-      setShowLoginModal(false);
-      setLoginUsername('');
-      setNotification({
-        type: 'success',
-        message: `Welcome, ${loginUsername.trim()}!`
-      });
-      setTimeout(() => setNotification(null), 3000);
-      setIsUploading(false);
-    }, 1000);
-  };
-
-  const signOut = () => {
-    setIsLoggedIn(false);
-    setShowUploadModal(false);
-    setUploadedFile(null);
-    setFile(null);
-    setProgress(0);
-    setUploading(false);
-    setUploaded(false);
-    setError(null);
-    setDocuments([]);
-    setSearchQuery('');
-    setAnalysisData(null);
-    setIsDeleting(false);
-    setLoading(true);
-    setUploadedDocId(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    setUserName('User');
-    setNotification({
-      type: 'info',
-      message: 'You have been signed out'
-    });
-    setTimeout(() => setNotification(null), 3000);
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setUploadedFile(file);
-    }
-  };
-
-  const handleSubmitFile = () => {
-    if (!uploadedFile) return;
-
-    setUploadProgress(0);
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setNotification({
-            type: 'success',
-            message: 'Resume uploaded successfully! Analysis in progress.'
-          });
-          setTimeout(() => {
-            setShowUploadModal(false);
-            setNotification(null);
-          }, 2000);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 200);
-  };
-
-  const openUploadModal = () => {
-    setShowUploadModal(true);
-  };
-
-  const openLoginModal = () => {
-    setShowLoginModal(true);
-  };
-
-  const fetchDocuments = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/pdf`);
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
-      }
-      const data = await response.json();
-      if (data.success) {
-        setDocuments(data.data.documents);
-      } else {
-        throw new Error(data.message || 'Failed to fetch documents');
-      }
-    } catch (error) {
-      console.error('Error fetching documents:', error);
-      setError(`Failed to load documents: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const searchDocuments = async () => {
-    setLoading(true);
-    if (!searchQuery.trim()) {
-      fetchDocuments();
-      return;
-    }
-    try {
-      const response = await fetch(`${API_BASE_URL}/pdf/search?query=${encodeURIComponent(searchQuery)}`);
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
-      }
-      const data = await response.json();
-      if (data.success) {
-        setDocuments(data.data || []);
-        setError(null);
-      } else {
-        throw new Error(data.message || 'Search failed');
-      }
-    } catch (error) {
-      console.error('Error searching documents:', error);
-      setError(`Search failed: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      if (selectedFile.type === 'application/pdf') {
-        setFile(selectedFile);
-        setError(null);
-      } else {
-        setFile(null);
-        setError("Please select a PDF file");
-      }
-    }
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
-      if (droppedFile.type === 'application/pdf') {
-        setFile(droppedFile);
-        setError(null);
-      } else {
-        setError("Please drop a PDF file");
-      }
-    }
-  };
-
-  const uploadFile = async () => {
-    if (!file) return;
-    setUploading(true);
-    setProgress(0);
-    setError(null);
-    const formData = new FormData();
-    formData.append('pdf', file);
-    try {
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
-      }, 500);
-      const response = await fetch(`${API_BASE_URL}/pdf/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-      clearInterval(progressInterval);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || `Server returned status ${response.status}`);
-      }
-      const data = await response.json();
-      if (data.success) {
-        setProgress(100);
-        setUploaded(true);
-        setUploading(false);
-        if (data.data && data.data.document && data.data.document._id) {
-          setUploadedDocId(data.data.document._id);
-        }
-        fetchDocuments();
-      } else {
-        throw new Error(data.message || 'Upload failed');
-      }
-    } catch (err) {
-      setProgress(0);
-      setUploading(false);
-      setError(err.message || 'Error uploading file');
-      console.error('Upload error:', err);
-    }
-  };
-
-  const clearFile = () => {
-    setFile(null);
-    setProgress(0);
-    setUploading(false);
-    setUploaded(false);
-    setError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const analyzeDocument = async (id) => {
-    try {
-      setAnalysisData({ loading: true });
-      const response = await fetch(`${API_BASE_URL}/gemini/analyze/${id}`);
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
-      }
-      const data = await response.json();
-      if (data.success) {
-        setAnalysisData(data.data || data);
-        setError(null);
-      } else {
-        throw new Error(data.message || 'Analysis failed');
-      }
-    } catch (error) {
-      setError(`Error analyzing document: ${error.message}`);
-      setAnalysisData(null);
-      console.error('Error analyzing document:', error);
-    }
-  };
-
-  const deleteDocument = async (id) => {
-    try {
-      setIsDeleting(true);
-      setError(null);
-      const response = await fetch(`${API_BASE_URL}/pdf/${id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || `Server returned status ${response.status}`);
-      }
-      const data = await response.json();
-      if (data.success) {
-        setDocuments(prevDocs => prevDocs.filter(doc => doc._id !== id));
-        if (analysisData && analysisData.documentId === id) {
-          setAnalysisData(null);
-        }
-        setError(null);
-      } else {
-        throw new Error(data.message || 'Failed to delete document');
-      }
-    } catch (error) {
-      setError(`Error deleting document: ${error.message}`);
-      console.error('Error deleting document:', error);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      searchDocuments();
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Navbar */}
-      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-              <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">Resume Analyzer</span>
-            </div>
-            <div className="flex items-center">
-              {isLoggedIn ? (
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                      <User className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{userName}</span>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={signOut}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </Button>
-                </div>
-              ) : (
-                <Button onClick={openLoginModal} disabled={isUploading}>
-                  {isUploading ? 
-                    <Clock className="h-4 w-4 mr-2 animate-spin" /> : 
-                    <LogIn className="h-4 w-4 mr-2" />
-                  }
-                  Sign In
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Notification */}
-        {notification && (
-          <div className="mb-6">
-            <Alert variant={notification.type === 'success' ? 'default' : notification.type === 'error' ? 'destructive' : 'default'}>
-              {notification.type === 'success' ? 
-                <CheckCircle className="h-4 w-4" /> : 
-                <AlertCircle className="h-4 w-4" />
-              }
-              <AlertTitle>{notification.type === 'success' ? 'Success' : notification.type === 'error' ? 'Error' : 'Info'}</AlertTitle>
-              <AlertDescription>{notification.message}</AlertDescription>
-            </Alert>
-          </div>
-        )}
-
-        {isLoggedIn ? (
-          // PDFUploader content
-          <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
-            {/* Animated Background Elements */}
-            <div className="absolute inset-0 overflow-hidden z-0">
-              <div className="absolute top-0 left-0 w-full h-full opacity-10">
-                <div className="absolute top-10 left-10 w-64 h-64 rounded-full bg-blue-400 blur-3xl animate-pulse" style={{ animationDuration: '8s' }}></div>
-                <div className="absolute top-40 right-20 w-72 h-72 rounded-full bg-purple-400 blur-3xl animate-pulse" style={{ animationDuration: '12s' }}></div>
-                <div className="absolute bottom-20 left-1/4 w-80 h-80 rounded-full bg-indigo-400 blur-3xl animate-pulse" style={{ animationDuration: '10s' }}></div>
-                <div className="absolute -bottom-10 right-1/3 w-64 h-64 rounded-full bg-sky-400 blur-3xl animate-pulse" style={{ animationDuration: '15s' }}></div>
-              </div>
-              <div className="absolute top-0 right-0 w-1/2 h-full opacity-10">
-                <svg className="w-full h-full text-indigo-500 opacity-10" viewBox="0 0 100 100" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#6366f1" />
-                      <stop offset="100%" stopColor="#8b5cf6" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M0,50 Q30,40 50,50 T100,50 V100 H0 Z" fill="url(#grad)" />
-                </svg>
-              </div>
-            </div>
-            
-            {/* Main Content */}
-            <div className="w-full max-w-6xl mx-auto p-4 md:p-6 relative z-10">
-              <div className="text-center mb-8">
-                <h2 className="text-3xl md:text-4xl font-bold text-center mb-2 inline-block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  RESUME ANALYZER
-                </h2>
-                <div className="h-1 w-32 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
-              </div>
-              
-              {error && (
-                <Alert variant="destructive" className="mb-4 animate-fadeIn shadow-lg border-l-4 border-red-500">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="absolute top-2 right-2 h-6 w-6 p-0" 
-                    onClick={() => setError(null)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </Alert>
-              )}
-              
-              {uploaded && !analysisData && (
-                <Alert className="mb-4 bg-green-50 border-green-200 animate-fadeIn shadow-lg border-l-4 border-green-500">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <AlertTitle>Success</AlertTitle>
-                  <AlertDescription>Your PDF has been uploaded successfully! Analyzing document...</AlertDescription>
-                </Alert>
-              )}
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-6">
-                  <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-blue-100 backdrop-blur-sm bg-white/90">
-                    <div className="p-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white">
-                      <h3 className="font-semibold text-lg">Upload New Document</h3>
-                    </div>
-                    
-                    {!file ? (
-                      <div 
-                        className="border-2 border-dashed rounded-lg m-4 p-8 text-center cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all duration-300 group"
-                        onClick={() => fileInputRef.current?.click()}
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                      >
-                        <div className="transform transition-all duration-300 group-hover:scale-110">
-                          <Upload className="mx-auto h-16 w-16 text-blue-400 mb-4" />
-                          <p className="text-lg font-medium mb-2">Drag & drop your PDF here</p>
-                          <p className="text-sm text-gray-500 mb-4">or click to browse</p>
-                          <Button 
-                            type="button" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              fileInputRef.current?.click();
-                            }}
-                            className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white transition-all duration-300 shadow-md hover:shadow-lg"
-                          >
-                            Select PDF File
-                          </Button>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="application/pdf"
-                            className="hidden"
-                            onChange={handleFileChange}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-4">
-                        <div className="flex items-center mb-4 bg-blue-50 rounded-lg p-3 shadow-inner">
-                          <FileText className="h-10 w-10 text-blue-500 mr-3" />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{file.name}</p>
-                            <p className="text-sm text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={clearFile} 
-                            className="text-gray-500 hover:text-red-500 transition-colors duration-200"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </Button>
-                        </div>
-                        
-                        {(uploading || uploaded) && (
-                          <div className="mb-4">
-                            <Progress 
-                              value={progress} 
-                              className="h-2" 
-                              indicatorClassName={uploaded ? "bg-green-500" : "bg-blue-500"}
-                            />
-                            <p className="text-xs text-gray-500 text-right mt-1">{progress}%</p>
-                          </div>
-                        )}
-                        
-                        {!uploading && !uploaded && (
-                          <Button 
-                            className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 transition-all duration-300 shadow-md hover:shadow-lg" 
-                            onClick={uploadFile}
-                            disabled={uploading}
-                          >
-                            Upload & Analyze PDF
-                          </Button>
-                        )}
-                        
-                        {uploaded && (
-                          <Button 
-                            className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 transition-all duration-300 shadow-md hover:shadow-lg"
-                            onClick={clearFile}
-                          >
-                            Upload Another PDF
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-indigo-100 backdrop-blur-sm bg-white/90">
-                  <div className="p-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white flex justify-between items-center">
-                    <h3 className="font-semibold text-lg">Document Library</h3>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={fetchDocuments} 
-                      disabled={loading}
-                      className="text-white hover:text-indigo-100"
-                    >
-                      <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-                      Refresh
-                    </Button>
-                  </div>
-                  
-                  <div className="p-4">
-                    <div className="flex gap-2 mb-4">
-                      <Input
-                        type="text"
-                        placeholder="Search documents..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        className="flex-1 border-indigo-200 focus:border-indigo-400 focus:ring-indigo-300"
-                      />
-                      <Button 
-                        onClick={searchDocuments}
-                        className="bg-indigo-500 hover:bg-indigo-600 transition-colors duration-200 shadow-md hover:shadow-lg"
-                      >
-                        <Search className="h-4 w-4 mr-2" />
-                        Search
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-2 max-h-96 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-indigo-200 scrollbar-track-transparent">
-                      {loading ? (
-                        <div className="flex justify-center items-center h-32">
-                          <RefreshCw className="h-8 w-8 text-indigo-400 animate-spin" />
-                        </div>
-                      ) : documents.length === 0 ? (
-                        <div className="text-center py-8 border-2 border-dashed rounded-lg">
-                          <FileText className="mx-auto h-12 w-12 text-gray-300 mb-2" />
-                          <p className="text-gray-500">No documents found</p>
-                        </div>
-                      ) : (
-                        documents.map((doc) => (
-                          <div 
-                            key={doc._id} 
-                            className="border rounded-lg hover:shadow-md transition-all duration-200 transform hover:-translate-y-1"
-                          >
-                            <div className="flex items-center p-3 bg-gradient-to-r from-white to-indigo-50">
-                              <FileText className="h-6 w-6 text-indigo-500 mr-3 flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{doc.filename}</p>
-                                <div className="flex flex-wrap items-center gap-2 mt-1">
-                                  <Badge variant="outline" className="text-xs bg-indigo-50">
-                                    {doc.metaData?.pageCount || 0} pages
-                                  </Badge>
-                                  <span className="text-xs text-gray-500">
-                                    {new Date(doc.createdAt).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex justify-between p-2 bg-gray-50 border-t">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => analyzeDocument(doc._id)}
-                                className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                              >
-                                Analyze
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => {
-                                  if (window.confirm('Are you sure you want to delete this document?')) {
-                                    deleteDocument(doc._id);
-                                  }
-                                }}
-                                disabled={isDeleting}
-                                className="text-red-600 border-red-200 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Delete
-                              </Button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {analysisData && (
-                <div className="mt-6 bg-white shadow-xl rounded-xl overflow-hidden border border-purple-100 backdrop-blur-sm bg-white/90 animate-fadeIn transform transition-all duration-500">
-                  <div className="p-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white flex justify-between items-center">
-                    <h3 className="font-semibold text-lg">
-                      {analysisData.loading ? 'Analyzing Document...' : `Analysis Summary for ${analysisData.resumeName || 'Document'}`}
-                    </h3>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setAnalysisData(null)}
-                      className="text-white hover:text-gray-100"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  {analysisData.loading ? (
-                    <div className="flex justify-center items-center h-32">
-                      <RefreshCw className="h-8 w-8 text-blue-400 animate-spin" />
-                    </div>
-                  ) : (
-                    <div className="p-4 md:p-6 space-y-6">
-                      <div className="flex flex-wrap gap-4 mb-4">
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 flex-1 min-w-48 shadow-inner">
-                          <h4 className="text-sm text-gray-500 mb-1">Overall Score</h4>
-                          <div className="text-2xl font-bold text-blue-700">{analysisData.analysis?.overallScore || 'N/A'}</div>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold text-lg mb-2 text-green-800 border-b pb-1">Top Key Strengths</h4>
-                        {analysisData.analysis?.keyStrengths?.length > 0 ? (
-                          <ul className="space-y-1">
-                            {analysisData.analysis.keyStrengths.slice(0, 3).map((strength, index) => (
-                              <li key={index} className="flex items-start p-2 hover:bg-green-50 rounded-lg transition-colors duration-200">
-                                <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
-                                <span className="text-gray-700">{strength}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-gray-500">No key strengths identified</p>
-                        )}
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold text-lg mb-2 text-amber-800 border-b pb-1">Top Priority Improvements</h4>
-                        {analysisData.analysis?.priorityImprovements?.length > 0 ? (
-                          <ul className="space-y-1">
-                            {analysisData.analysis.priorityImprovements.slice(0, 3).map((improvement, index) => (
-                              <li key={index} className="flex items-start p-2 hover:bg-amber-50 rounded-lg transition-colors duration-200">
-                                <AlertCircle className="h-4 w-4 text-amber-500 mr-2 mt-1 flex-shrink-0" />
-                                <span className="text-gray-700">{improvement}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-gray-500">No priority improvements suggested</p>
-                        )}
-                      </div>
-                      
-                      {analysisData.analysis?.overallAssessment && (
-                        <div>
-                          <h4 className="font-semibold text-lg mb-2 text-indigo-800 border-b pb-1">Overall Assessment</h4>
-                          <p className="text-gray-700 bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg shadow-inner">{analysisData.analysis.overallAssessment}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          // Original homepage content
-          <>
-            {/* Hero section */}
-            <div className="text-center mb-12">
-              <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white sm:text-5xl sm:tracking-tight lg:text-6xl">
-                <span className="block">Optimize Your Resume</span>
-                <span className="block text-blue-600 dark:text-blue-400">Get Hired Faster</span>
-              </h1>
-              <p className="mt-5 max-w-xl mx-auto text-xl text-gray-500 dark:text-gray-400">
-                Upload your resume and get instant feedback, ATS optimization tips, and keyword analysis.
-              </p>
-              <div className="mt-8 flex justify-center">
-                {/*  */}
-              </div>
-            </div>
-
-            {/* Features section */}
-            <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center text-blue-600 dark:text-blue-400">
-                    <BarChart4 className="h-5 w-5 mr-2" />
-                    ATS Score Analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base">
-                    Get an applicant tracking system (ATS) compatibility score and recommendations to improve it.
-                  </CardDescription>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="ghost" className="text-sm" disabled={!isLoggedIn}>
-                    Learn more <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </CardFooter>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center text-blue-600 dark:text-blue-400">
-                    <FileText className="h-5 w-5 mr-2" />
-                    Keyword Optimization
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base">
-                    Analyze your resume against job descriptions to identify missing keywords and improve match rate.
-                  </CardDescription>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="ghost" className="text-sm" disabled={!isLoggedIn}>
-                    Learn more <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </CardFooter>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center text-blue-600 dark:text-blue-400">
-                    <User className="h-5 w-5 mr-2" />
-                    Professional Feedback
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base">
-                    Receive personalized suggestions on content, formatting, and structure from industry experts.
-                  </CardDescription>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="ghost" className="text-sm" disabled={!isLoggedIn}>
-                    Learn more <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
-
-            {/* How it works section */}
-            <div className="mt-20">
-              <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">How It Works</h2>
-              <div className="grid gap-8 md:grid-cols-3">
-                <div className="flex flex-col items-center text-center">
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-                    <Upload className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">1. Upload Resume</h3>
-                  <p className="text-gray-500 dark:text-gray-400">Upload your resume in PDF</p>
-                </div>
-                
-                <div className="flex flex-col items-center text-center">
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-                    <BarChart4 className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">2. Analyze</h3>
-                  <p className="text-gray-500 dark:text-gray-400">Our AI analyzes your resume against best practices and job requirements.</p>
-                </div>
-                
-                <div className="flex flex-col items-center text-center">
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-                    <CheckCircle className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">3. Get Results</h3>
-                  <p className="text-gray-500 dark:text-gray-400">Receive detailed feedback and actionable improvements.</p>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center mb-4 md:mb-0">
-              <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              <span className="ml-2 text-lg font-semibold text-gray-900 dark:text-white">Resume Analyzer</span>
-            </div>
-            <div className="flex space-x-6">
-              <a href="#" className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                Terms
-              </a>
-              <a href="#" className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                Privacy
-              </a>
-              <a href="#" className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                Contact
-              </a>
-              <a href="#" className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white flex items-center">
-                <Github className="h-4 w-4 mr-1" />
-                GitHub
-              </a>
-            </div>
-          </div>
-          <div className="mt-4 text-center md:text-left text-sm text-gray-500 dark:text-gray-400">
-            © {new Date().getFullYear()} Resume Analyzer. All rights reserved.
-          </div>
-        </div>
-      </footer>
-      
-      {/* Upload Modal */}
-      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Upload Your Resume</DialogTitle>
-            <DialogDescription>
-              Upload your resume for analysis. We support PDF.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            {!uploadedFile ? (
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-12">
-                <Upload className="h-10 w-10 text-gray-400 mb-4" />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">
-                  Drag & drop your resume here or click to browse
-                </p>
-                <input
-                  type="file"
-                  id="resume-upload"
-                  className="hidden"
-                  accept=".pdf,.docx,.doc,.txt"
-                  onChange={handleFileUpload}
-                />
-                <Button 
-                  variant="outline" 
-                  onClick={() => document.getElementById('resume-upload').click()}
-                >
-                  Select File
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400 mr-3" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {uploadedFile.name}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {(uploadedFile.size / 1024).toFixed(1)} KB
-                    </p>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setUploadedFile(null)}
-                  >
-                    Replace
-                  </Button>
-                </div>
-                
-                {uploadProgress > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500 dark:text-gray-400">Uploading...</span>
-                      <span className="text-gray-900 dark:text-white">{uploadProgress}%</span>
-                    </div>
-                    <Progress value={uploadProgress} />
-                  </div>
+// --- MAIN WRAPPER ---
+const Home = () => {
+    const { currentUser } = useAuth();
+    return (
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 overflow-x-hidden">
+             <div className="absolute top-0 left-0 w-full h-full bg-grid-slate-100/[0.03] dark:bg-grid-slate-700/[0.05]"></div>
+             <Navbar />
+            <AnimatePresence mode="wait">
+                {currentUser ? (
+                    <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        <Dashboard />
+                    </motion.div>
+                ) : (
+                    <motion.div key="landing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        <LandingPage />
+                    </motion.div>
                 )}
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowUploadModal(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSubmitFile}
-              disabled={!uploadedFile || uploadProgress > 0}
-            >
-              {uploadProgress > 0 ? 'Uploading...' : 'Upload & Analyze'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AnimatePresence>
+            <Footer />
+        </div>
+    );
+};
 
-      {/* Login Modal */}
-      <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Sign In</DialogTitle>
-            <DialogDescription>
-              Enter your username to sign in and access resume analysis features.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <Input
-              type="text"
-              placeholder="Enter your username"
-              value={loginUsername}
-              onChange={(e) => setLoginUsername(e.target.value)}
-              className="border-gray-300 dark:border-gray-700"
-            />
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowLoginModal(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={signInDirect}
-              disabled={isUploading}
-            >
-              {isUploading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+
+// --- UI COMPONENTS ---
+
+const Navbar = () => {
+    const { currentUser, signInWithGoogle, signOut } = useAuth();
+    return (
+        <header className="sticky top-0 z-50 w-full bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between items-center h-16">
+                    <motion.div initial={{ opacity:0, x:-20 }} animate={{ opacity:1, x:0 }} className="flex items-center space-x-3">
+                        <img src={logoImage} alt="Resume Analyzer Logo" className="h-8 w-auto" />
+                        <span className="text-xl font-bold tracking-tight">ResumeAnalyzer</span>
+                    </motion.div>
+                    <motion.div initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }} className="flex items-center space-x-2 sm:space-x-4">
+                        {currentUser ? (
+                            <>
+                                <Avatar className="h-9 w-9"><AvatarImage src={currentUser.photoURL} alt={currentUser.displayName} /><AvatarFallback>{currentUser.displayName?.[0]}</AvatarFallback></Avatar>
+                                <Button variant="ghost" size="sm" onClick={() => signOut().then(() => toast.success("Signed out!"))}>
+                                    <LogOut className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Sign Out</span>
+                                </Button>
+                            </>
+                        ) : ( 
+                            <Button onClick={() => signInWithGoogle().catch(() => toast.error("Sign in failed"))} className="bg-white text-gray-800 border border-gray-300 shadow-sm hover:bg-gray-100 dark:bg-slate-800 dark:text-white dark:border-slate-700 dark:hover:bg-slate-700 transition-all group px-3 sm:px-4 py-2">
+                                <svg aria-hidden="true" className="w-5 h-5 sm:mr-2" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 262"><path fill="#4285F4" d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622 38.755 30.023 2.685.268c24.659-22.774 38.875-56.282 38.875-96.027"></path><path fill="#34A853" d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.27 12.04-45.257 12.04-34.523 0-63.824-22.773-74.269-54.25l-1.531.13-40.298 31.186-.524 1.49c21.621 42.709 63.824 72.028 113.469 72.028z"></path><path fill="#FBBC05" d="M56.281 156.37c-2.756-8.123-4.351-16.8-4.351-25.82 0-9.02.964-17.697 3.204-25.82l-1.138-.498-39.062-30.123-.623 1.492c-5.864 11.7-9.282 24.66-9.282 38.812 0 14.152 3.548 27.112 9.11 38.812l41.057-31.913z"></path><path fill="#EB4335" d="M130.55 50.479c19.205 0 36.344 6.698 49.088 18.857l36.844-35.894C195.245 12.91 165.798 0 130.55 0 81.024 0 38.875 29.318 17.254 72.028l41.196 31.913c10.445-31.477 39.746-54.25 74.269-54.25z"></path></svg>
+                                <span className="hidden sm:inline text-sm font-medium">Sign In with Google</span>
+                            </Button>
+                        )}
+                    </motion.div>
+                </div>
+            </div>
+        </header>
+    );
+};
+
+// ✅ LANDING PAGE WITH SLIDER REMOVED AND REPLACED WITH STATIC GRID
+const LandingPage = () => {
+    const { signInWithGoogle } = useAuth();
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, amount: 0.2 });
+
+    const features = [ 
+        { icon: Cpu, title: "AI-Powered Analysis", description: "Leverage Google's Gemini AI to get deep insights on your resume's effectiveness." },
+        { icon: Palette, title: "Modern & Clean UI", description: "Enjoy a beautiful, intuitive interface built with the latest web technologies." },
+        { icon: TabletSmartphone, title: "Fully Responsive", description: "Analyze your resume on any device, whether on a desktop, tablet, or phone." }
+    ];
+
+    return (
+         <>
+            {/* REACT 19 BUILT-IN SEO SUPPORT - NO HELMET NEEDED! */}
+            <title>Free AI Resume Analyzer - Check Your CV Score | ResumeAnalyzer</title>
+            <meta name="description" content="Get instant AI-powered feedback on your resume. Our free tool analyzes your CV for ATS keywords, formatting, and provides a score to help you land your dream job." />
+            
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-24 text-center relative z-10">
+                <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{duration:0.7}}>
+                    <Badge variant="outline" className="py-1 px-3 mb-4 border-blue-300 dark:border-blue-700">Powered by Gemini AI</Badge>
+                    <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-4 bg-gradient-to-br from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">Upgrade Your Resume, <br/> Fast-Track Your Career</h1>
+                    <p className="max-w-2xl mx-auto text-lg text-slate-600 dark:text-slate-400 mb-8">Stop guessing. Get instant, AI-driven feedback to optimize your resume and impress recruiters.</p>
+                </motion.div>
+                <motion.div initial={{opacity:0,scale:0.8}} animate={{opacity:1,scale:1}} transition={{duration:0.7,delay:0.2}}>
+                    <Button size="lg" className="rounded-full shadow-lg" onClick={()=>signInWithGoogle()}>Get Started for Free <ChevronRight className="h-5 w-5 ml-2"/></Button>
+                </motion.div>
+                
+                {/* Feature section is now a static grid */}
+                <div ref={ref} className="mt-24 md:mt-32 w-full text-left">
+                     <motion.h2 
+                         initial={{opacity:0, y:20}} 
+                         animate={isInView ? {opacity:1, y:0} : {}}
+                         transition={{duration: 0.5}}
+                         className="text-3xl font-bold text-center mb-8"
+                     >
+                         Why Choose Us?
+                     </motion.h2>
+                    <motion.div 
+                        className="grid grid-cols-1 md:grid-cols-3 gap-8"
+                        initial="hidden"
+                        animate={isInView ? "visible" : "hidden"}
+                        variants={{ visible: { transition: { staggerChildren: 0.2 } } }}
+                    >
+                        {features.map((feature, i) => (
+                            <motion.div 
+                                key={i} 
+                                variants={{
+                                    hidden: { opacity: 0, y: 30 },
+                                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                                }}
+                            >
+                                <Card className="h-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-md">
+                                    <CardHeader>
+                                        <div className="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-lg w-fit mb-2">
+                                            <feature.icon className="h-6 w-6 text-blue-600"/>
+                                        </div>
+                                        <CardTitle>{feature.title}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-slate-600 dark:text-slate-400">{feature.description}</p>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        ))}
+                    </motion.div>
+                </div>
+            </main>
+        </>
+    );
+};
+
+const Dashboard = () => {
+    const [file,setFile] = useState(null);
+    const [documents,setDocuments] = useState([]);
+    const [analysisData,setAnalysisData] = useState(null);
+    const [loadingState,setLoadingState] = useState({docs:true,upload:false,analysis:false,delete:null});
+    const fileInputRef = useRef(null);
+    
+    const fetchDocuments = async() => {setLoadingState(p=>({...p,docs:true}));try{const{data}=await api.get('/pdfs');if(data.success)setDocuments(data.data)}catch(err){toast.error(err.response?.data?.message||"Failed to fetch docs.")}finally{setLoadingState(p=>({...p,docs:false}))}};
+    const handleFileChange = (e) => {const selectedFile=e.target.files[0];if(selectedFile&&selectedFile.type==='application/pdf'){setFile(selectedFile)}else if(selectedFile){toast.error("Please select a PDF file.")}};
+    const handleUpload = async() => {if(!file)return;setLoadingState(p=>({...p,upload:true}));const toastId=toast.loading("Uploading PDF...");const formData=new FormData();formData.append('pdf',file);try{const{data}=await api.post('/pdfs/upload',formData);if(data.success){toast.success("PDF uploaded! Analyzing...",{id:toastId});setFile(null);if(fileInputRef.current)fileInputRef.current.value="";await fetchDocuments();await analyzeDocument(data.data.document._id)}}catch(err){toast.error(err.response?.data?.message||'Upload failed.',{id:toastId})}finally{setLoadingState(p=>({...p,upload:false}))}};
+    const analyzeDocument = async(id) => {setAnalysisData(null);setLoadingState(p=>({...p,analysis:true}));const toastId=toast.loading("AI is analyzing resume...");try{const{data}=await api.get(`/gemini/analyze/${id}`);if(data.success){toast.success("Analysis complete!",{id:toastId});setAnalysisData(data.data)}}catch(err){toast.error(err.response?.data?.message||"Analysis failed.",{id:toastId})}finally{setLoadingState(p=>({...p,analysis:false}))}};
+    const deleteDocument = async(id) => {if(!window.confirm("Delete this document?"))return;setLoadingState(p=>({...p,delete:id}));const toastId=toast.loading("Deleting document...");try{await api.delete(`/pdfs/${id}`);toast.success("Document deleted.",{id:toastId});setDocuments(docs=>docs.filter(d=>d._id!==id));if(analysisData?.resumeId===id)setAnalysisData(null)}catch(err){toast.error(err.response?.data?.message||"Failed to delete.",{id:toastId})}finally{setLoadingState(p=>({...p,delete:null}))}};
+    useEffect(()=>{fetchDocuments()},[]);
+
+    return (
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <motion.div initial="hidden" animate="visible" variants={{visible:{transition:{staggerChildren:0.1}}}} className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                <motion.div className="lg:col-span-2 flex flex-col gap-8" variants={{hidden:{opacity:0,x:-20},visible:{opacity:1,x:0}}}>
+                    <UploaderCard file={file} loading={loadingState.upload} onFileChange={handleFileChange} onUpload={handleUpload} fileInputRef={fileInputRef} setFile={setFile}/>
+                    <DocumentList documents={documents} loading={loadingState.docs} deletingId={loadingState.delete} onAnalyze={analyzeDocument} onDelete={deleteDocument}/>
+                </motion.div>
+                <motion.div className="lg:col-span-3" variants={{hidden:{opacity:0,x:20},visible:{opacity:1,x:0}}}>
+                    <AnalysisPanel loading={loadingState.analysis} data={analysisData}/>
+                </motion.div>
+            </motion.div>
+        </main>
+    );
+};
+
+const UploaderCard = ({ file, loading, onFileChange, onUpload, fileInputRef, setFile }) => {
+    const [isDragging, setIsDragging] = useState(false);
+    const handleDragOver = (e) => {e.preventDefault();setIsDragging(true)};
+    const handleDragLeave = (e) => {e.preventDefault();setIsDragging(false)};
+    const handleDrop = (e) => {e.preventDefault();setIsDragging(false);const droppedFile=e.dataTransfer.files[0];if(droppedFile&&droppedFile.type==='application/pdf'){onFileChange({target:{files:[droppedFile]}})}else if(droppedFile){toast.error("Please drop a PDF file only.")}};
+    
+    return(
+        <Card className={`shadow-lg hover:shadow-xl transition-shadow duration-300 relative z-10 ${loading?'opacity-50 pointer-events-none':''}`}>
+            <CardHeader><CardTitle>Upload New Resume</CardTitle></CardHeader>
+            <CardContent>
+                {!file?(<motion.div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all duration-300 ease-in-out relative border-slate-700" variants={{idle:{borderColor:"hsl(var(--border))",backgroundColor:"transparent"},dragging:{borderColor:"hsl(262 83% 58%)",backgroundColor:"hsla(262, 83%, 58%, 0.1)",scale:1.05}}} animate={isDragging?"dragging":"idle"} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onClick={()=>fileInputRef.current?.click()}>
+                    <AnimatePresence>{isDragging&&(<motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute -inset-2 rounded-lg bg-violet-500/30 blur-lg"></motion.div>)}</AnimatePresence>
+                    <input ref={fileInputRef} type="file" accept="application/pdf" className="hidden" onChange={onFileChange}/>
+                    <motion.div variants={{idle:{scale:1},dragging:{scale:1.2}}} className="flex flex-col items-center justify-center">
+                        <Upload className="mx-auto h-12 w-12 text-slate-400 mb-2 transition-colors"/><p className="font-semibold text-base transition-colors">{isDragging?'Drop the file!':'Click or drag to upload'}</p><p className="text-xs text-slate-500">PDF only, max 5MB</p>
+                    </motion.div>
+                </motion.div>):(
+                <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}}>
+                    <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800/50 flex items-center space-x-3">
+                        <FileText className="h-10 w-10 text-violet-500 flex-shrink-0"/><div className="flex-1 overflow-hidden"><p className="font-semibold text-sm truncate">{file.name}</p><p className="text-xs text-slate-500">{(file.size/1024).toFixed(1)} KB</p></div>
+                        <button onClick={()=>{setFile(null);if(fileInputRef.current)fileInputRef.current.value=""}} className="p-1 text-slate-500 hover:text-red-500 transition-colors"><Trash2 className="h-5 w-5"/></button>
+                    </div>
+                    <Button className="w-full mt-4 bg-violet-600 hover:bg-violet-700 text-white" onClick={onUpload} disabled={loading}>{loading?<Loader2 className="animate-spin mr-2"/>:<Cpu className="h-4 w-4 mr-2"/>}Upload & Analyze</Button>
+                </motion.div>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+const DocumentList=({documents,loading,deletingId,onAnalyze,onDelete})=>(
+    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 relative z-10">
+        <CardHeader><CardTitle>Your Document Library</CardTitle></CardHeader>
+        <CardContent>
+            <motion.div className="max-h-96 min-h-[10rem] overflow-y-auto space-y-3 -m-2 p-2">
+                <AnimatePresence>
+                    {loading?<motion.div key="loader" className="flex justify-center items-center h-40"><Loader2 className="animate-spin text-violet-400 h-8 w-8"/></motion.div>:
+                    documents.length>0?(documents.map((doc,i)=>(<motion.div layout key={doc._id} initial={{opacity:0,y:-20}} animate={{opacity:1,y:0}} exit={{opacity:0,x:-20,transition:{duration:0.2}}} className="flex items-center justify-between p-3 rounded-lg bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors">
+                        <div className="flex items-center space-x-3 truncate"><FileText className="h-5 w-5 text-violet-400"/><span className="truncate font-medium text-sm">{doc.filename}</span></div>
+                        <div className="flex items-center space-x-1"><Button size="sm" variant="ghost" onClick={()=>onAnalyze(doc._id)}>Analyze</Button><Button size="icon" variant="ghost" onClick={()=>onDelete(doc._id)} disabled={deletingId===doc._id}>{deletingId===doc._id?<Loader2 className="h-4 w-4 animate-spin"/>:<Trash2 className="h-4 w-4 text-red-500/80 hover:text-red-500"/>}</Button></div>
+                    </motion.div>))):
+                    <motion.div key="empty" initial={{opacity:0}} animate={{opacity:1}} className="text-center p-8 text-slate-500 flex flex-col items-center h-40 justify-center"><FileText className="h-12 w-12 text-slate-700 mb-2"/>No documents yet.<br/>Upload one to begin.</motion.div>}
+                </AnimatePresence>
+            </motion.div>
+        </CardContent>
+    </Card>
+);
+const AnalysisPanel=({loading,data})=>(<Card className="shadow-xl min-h-full sticky top-24"><CardHeader><CardTitle>AI Analysis Report</CardTitle></CardHeader><CardContent className="pt-2"><AnimatePresence mode="wait">{loading?<LoadingAnalysis key="loading"/>:data?<AnalysisResult key="data" data={data}/>:<PlaceholderAnalysis key="placeholder"/>}</AnimatePresence></CardContent></Card>);
+const LoadingAnalysis=()=>(<motion.div className="flex flex-col items-center justify-center h-96" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}><motion.div className="h-16 w-16 text-violet-500" animate={{rotate:360}} transition={{duration:1,repeat:Infinity,ease:"linear"}}><Cpu/></motion.div><p className="font-semibold text-lg mt-4">Gemini AI is analyzing...</p><p className="text-sm text-slate-500">This might take a moment.</p></motion.div>);
+const PlaceholderAnalysis=()=>(<motion.div className="flex flex-col items-center justify-center h-96 text-slate-600" initial={{opacity:0}} animate={{opacity:1,transition:{delay:0.2}}} exit={{opacity:0}}><BarChart4 className="h-20 w-20 mb-4 opacity-50"/><p className="text-lg font-medium text-center">Your report will appear here.</p><p className="text-sm text-center">Upload or select a document to begin.</p></motion.div>);
+const AnalysisResult=({data})=>(<motion.div className="space-y-6" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}><motion.div className="text-center" initial={{scale:0.8}} animate={{scale:1}}><CardDescription>Score for <span className="font-bold text-violet-400">{data.resumeName}</span></CardDescription><p className="text-7xl font-bold">{data.analysis.overallScore}<span className="text-2xl text-slate-500">/100</span></p></motion.div><motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0,transition:{delay:0.2}}}><Card className="bg-slate-800/50"><CardHeader><CardTitle className="text-base flex items-center"><CheckCircle className="h-5 w-5 text-green-400 mr-2"/>Strengths</CardTitle></CardHeader><CardContent><ul className="list-disc list-inside space-y-1 text-sm text-slate-300">{data.analysis.keyStrengths?.map((item,i)=><li key={i}>{item}</li>)}</ul></CardContent></Card></motion.div><motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0,transition:{delay:0.3}}}><Card className="bg-slate-800/50"><CardHeader><CardTitle className="text-base flex items-center"><AlertCircle className="h-5 w-5 text-yellow-400 mr-2"/>Improvements</CardTitle></CardHeader><CardContent><ul className="list-disc list-inside space-y-1 text-sm text-slate-300">{data.analysis.priorityImprovements?.map((item,i)=><li key={i}>{item}</li>)}</ul></CardContent></Card></motion.div><motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0,transition:{delay:0.4}}}><h4 className="font-bold mb-2">Overall Assessment</h4><p className="text-sm p-4 bg-slate-800/70 rounded-lg">{data.analysis.overallAssessment}</p></motion.div></motion.div>);
+const Footer=()=>(<footer className="bg-transparent mt-12"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-slate-500"><p>© {new Date().getFullYear()} Resume Analyzer. Crafted with ❤️ by Prashant Yadav.</p><a href="https://github.com/prashant-yadav-v" target="_blank" rel="noopener noreferrer" className="inline-flex items-center mt-2 hover:text-violet-400 transition-colors"><Github className="h-4 w-4 mr-1"/> View on GitHub</a></div></footer>);
+
+export default Home;

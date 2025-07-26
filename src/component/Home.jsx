@@ -1,4 +1,4 @@
-// --- START OF FILE src/component/Home.jsx (FINAL, CLEANED & NO SLIDER) ---
+// --- START OF FILE src/component/Home.jsx (THEME FIX APPLIED) ---
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -82,7 +82,6 @@ const Navbar = () => {
     );
 };
 
-// ✅ LANDING PAGE WITH SLIDER REMOVED AND REPLACED WITH STATIC GRID
 const LandingPage = () => {
     const { signInWithGoogle } = useAuth();
     const ref = useRef(null);
@@ -96,7 +95,6 @@ const LandingPage = () => {
 
     return (
          <>
-            {/* REACT 19 BUILT-IN SEO SUPPORT - NO HELMET NEEDED! */}
             <title>Free AI Resume Analyzer - Check Your CV Score | ResumeAnalyzer</title>
             <meta name="description" content="Get instant AI-powered feedback on your resume. Our free tool analyzes your CV for ATS keywords, formatting, and provides a score to help you land your dream job." />
             
@@ -110,7 +108,6 @@ const LandingPage = () => {
                     <Button size="lg" className="rounded-full shadow-lg" onClick={()=>signInWithGoogle()}>Get Started for Free <ChevronRight className="h-5 w-5 ml-2"/></Button>
                 </motion.div>
                 
-                {/* Feature section is now a static grid */}
                 <div ref={ref} className="mt-24 md:mt-32 w-full text-left">
                      <motion.h2 
                          initial={{opacity:0, y:20}} 
@@ -232,7 +229,60 @@ const DocumentList=({documents,loading,deletingId,onAnalyze,onDelete})=>(
 const AnalysisPanel=({loading,data})=>(<Card className="shadow-xl min-h-full sticky top-24"><CardHeader><CardTitle>AI Analysis Report</CardTitle></CardHeader><CardContent className="pt-2"><AnimatePresence mode="wait">{loading?<LoadingAnalysis key="loading"/>:data?<AnalysisResult key="data" data={data}/>:<PlaceholderAnalysis key="placeholder"/>}</AnimatePresence></CardContent></Card>);
 const LoadingAnalysis=()=>(<motion.div className="flex flex-col items-center justify-center h-96" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}><motion.div className="h-16 w-16 text-violet-500" animate={{rotate:360}} transition={{duration:1,repeat:Infinity,ease:"linear"}}><Cpu/></motion.div><p className="font-semibold text-lg mt-4">Gemini AI is analyzing...</p><p className="text-sm text-slate-500">This might take a moment.</p></motion.div>);
 const PlaceholderAnalysis=()=>(<motion.div className="flex flex-col items-center justify-center h-96 text-slate-600" initial={{opacity:0}} animate={{opacity:1,transition:{delay:0.2}}} exit={{opacity:0}}><BarChart4 className="h-20 w-20 mb-4 opacity-50"/><p className="text-lg font-medium text-center">Your report will appear here.</p><p className="text-sm text-center">Upload or select a document to begin.</p></motion.div>);
-const AnalysisResult=({data})=>(<motion.div className="space-y-6" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}><motion.div className="text-center" initial={{scale:0.8}} animate={{scale:1}}><CardDescription>Score for <span className="font-bold text-violet-400">{data.resumeName}</span></CardDescription><p className="text-7xl font-bold">{data.analysis.overallScore}<span className="text-2xl text-slate-500">/100</span></p></motion.div><motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0,transition:{delay:0.2}}}><Card className="bg-slate-800/50"><CardHeader><CardTitle className="text-base flex items-center"><CheckCircle className="h-5 w-5 text-green-400 mr-2"/>Strengths</CardTitle></CardHeader><CardContent><ul className="list-disc list-inside space-y-1 text-sm text-slate-300">{data.analysis.keyStrengths?.map((item,i)=><li key={i}>{item}</li>)}</ul></CardContent></Card></motion.div><motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0,transition:{delay:0.3}}}><Card className="bg-slate-800/50"><CardHeader><CardTitle className="text-base flex items-center"><AlertCircle className="h-5 w-5 text-yellow-400 mr-2"/>Improvements</CardTitle></CardHeader><CardContent><ul className="list-disc list-inside space-y-1 text-sm text-slate-300">{data.analysis.priorityImprovements?.map((item,i)=><li key={i}>{item}</li>)}</ul></CardContent></Card></motion.div><motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0,transition:{delay:0.4}}}><h4 className="font-bold mb-2">Overall Assessment</h4><p className="text-sm p-4 bg-slate-800/70 rounded-lg">{data.analysis.overallAssessment}</p></motion.div></motion.div>);
+
+// ✅ THEME AND STYLING FIXES APPLIED HERE
+const AnalysisResult = ({ data }) => (
+    <motion.div className="space-y-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        {/* Score */}
+        <motion.div className="text-center" initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
+            <CardDescription>
+                Score for <span className="font-bold text-violet-600 dark:text-violet-400">{data.resumeName}</span>
+            </CardDescription>
+            <p className="text-7xl font-bold">{data.analysis.overallScore}<span className="text-2xl text-slate-500">/100</span></p>
+        </motion.div>
+        
+        {/* Strengths */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }}>
+            <Card className="bg-slate-50 dark:bg-slate-800/50">
+                <CardHeader>
+                    <CardTitle className="text-base flex items-center text-slate-800 dark:text-slate-200">
+                        <CheckCircle className="h-5 w-5 text-green-500 dark:text-green-400 mr-2" />Strengths
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                        {data.analysis.keyStrengths?.map((item, i) => <li key={i}>{item}</li>)}
+                    </ul>
+                </CardContent>
+            </Card>
+        </motion.div>
+        
+        {/* Improvements */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.3 } }}>
+            <Card className="bg-slate-50 dark:bg-slate-800/50">
+                <CardHeader>
+                    <CardTitle className="text-base flex items-center text-slate-800 dark:text-slate-200">
+                        <AlertCircle className="h-5 w-5 text-yellow-500 dark:text-yellow-400 mr-2" />Improvements
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                        {data.analysis.priorityImprovements?.map((item, i) => <li key={i}>{item}</li>)}
+                    </ul>
+                </CardContent>
+            </Card>
+        </motion.div>
+
+        {/* Overall Assessment */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.4 } }}>
+            <h4 className="font-bold mb-2">Overall Assessment</h4>
+            <p className="text-sm p-4 bg-slate-100 dark:bg-slate-800/70 rounded-lg text-slate-700 dark:text-slate-300">
+                {data.analysis.overallAssessment}
+            </p>
+        </motion.div>
+    </motion.div>
+);
+
 const Footer=()=>(<footer className="bg-transparent mt-12"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-slate-500"><p>© {new Date().getFullYear()} Resume Analyzer. Crafted with ❤️ by Prashant Yadav.</p><a href="https://github.com/prashant-yadav-v" target="_blank" rel="noopener noreferrer" className="inline-flex items-center mt-2 hover:text-violet-400 transition-colors"><Github className="h-4 w-4 mr-1"/> View on GitHub</a></div></footer>);
 
 export default Home;

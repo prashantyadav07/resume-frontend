@@ -283,6 +283,6 @@ const AnalysisResult = ({ data }) => (
     </motion.div>
 );
 
-const Footer=()=>(<footer className="bg-transparent mt-12"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-slate-500"><p>© {new Date().getFullYear()} Resume Analyzer. Crafted with ❤️ by Prashant Yadav.</p><a href="https://github.com/prashant-yadav-v" target="_blank" rel="noopener noreferrer" className="inline-flex items-center mt-2 hover:text-violet-400 transition-colors"><Github className="h-4 w-4 mr-1"/> View on GitHub</a></div></footer>);
+const Footer=()=>(<footer className="bg-transparent mt-12"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-slate-500"><p>© {new Date().getFullYear()} Resume Analyzer. Crafted with ❤️ by Prashant Yadav.</p><a href="https://github.com/prashantyadav07" target="_blank" rel="noopener noreferrer" className="inline-flex items-center mt-2 hover:text-violet-400 transition-colors"><Github className="h-4 w-4 mr-1"/> View on GitHub</a></div></footer>);
 
 export default Home;

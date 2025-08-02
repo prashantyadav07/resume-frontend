@@ -3,21 +3,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
-import { 
+import {
     Upload, FileText, CheckCircle, AlertCircle, Trash2, Loader2, LogIn, LogOut,
-    User, Github, ChevronRight, BarChart4, Cpu, Palette, TabletSmartphone 
+    User, Github, ChevronRight, BarChart4, Cpu, Palette, TabletSmartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge"; 
+import { Badge } from "@/components/ui/badge";
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { auth } from '../firebase';
-import logoImage from '../assets/logo.png'; 
+import logoImage from '../assets/logo.png';
 
 // --- AXIOS API SETUP ---
-const API_BASE_URL = 'https://resume-backend-2zxa.onrender.com/api/v1'; 
+const API_BASE_URL = 'https://resume-backend-2zxa.onrender.com/api/v1';
 const api = axios.create({ baseURL: API_BASE_URL });
 api.interceptors.request.use(async (config) => {
     const token = await auth.currentUser?.getIdToken();
@@ -69,7 +69,7 @@ const Navbar = () => {
                                     <LogOut className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Sign Out</span>
                                 </Button>
                             </>
-                        ) : ( 
+                        ) : (
                             <Button onClick={() => signInWithGoogle().catch(() => toast.error("Sign in failed"))} className="bg-white text-gray-800 border border-gray-300 shadow-sm hover:bg-gray-100 dark:bg-slate-800 dark:text-white dark:border-slate-700 dark:hover:bg-slate-700 transition-all group px-3 sm:px-4 py-2">
                                 <svg aria-hidden="true" className="w-5 h-5 sm:mr-2" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 262"><path fill="#4285F4" d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622 38.755 30.023 2.685.268c24.659-22.774 38.875-56.282 38.875-96.027"></path><path fill="#34A853" d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.27 12.04-45.257 12.04-34.523 0-63.824-22.773-74.269-54.25l-1.531.13-40.298 31.186-.524 1.49c21.621 42.709 63.824 72.028 113.469 72.028z"></path><path fill="#FBBC05" d="M56.281 156.37c-2.756-8.123-4.351-16.8-4.351-25.82 0-9.02.964-17.697 3.204-25.82l-1.138-.498-39.062-30.123-.623 1.492c-5.864 11.7-9.282 24.66-9.282 38.812 0 14.152 3.548 27.112 9.11 38.812l41.057-31.913z"></path><path fill="#EB4335" d="M130.55 50.479c19.205 0 36.344 6.698 49.088 18.857l36.844-35.894C195.245 12.91 165.798 0 130.55 0 81.024 0 38.875 29.318 17.254 72.028l41.196 31.913c10.445-31.477 39.746-54.25 74.269-54.25z"></path></svg>
                                 <span className="hidden sm:inline text-sm font-medium">Sign In with Google</span>
@@ -87,7 +87,7 @@ const LandingPage = () => {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, amount: 0.2 });
 
-    const features = [ 
+    const features = [
         { icon: Cpu, title: "AI-Powered Analysis", description: "Leverage Google's Gemini AI to get deep insights on your resume's effectiveness." },
         { icon: Palette, title: "Modern & Clean UI", description: "Enjoy a beautiful, intuitive interface built with the latest web technologies." },
         { icon: TabletSmartphone, title: "Fully Responsive", description: "Analyze your resume on any device, whether on a desktop, tablet, or phone." }
@@ -97,7 +97,7 @@ const LandingPage = () => {
          <>
             <title>Free AI Resume Analyzer - Check Your CV Score | ResumeAnalyzer</title>
             <meta name="description" content="Get instant AI-powered feedback on your resume. Our free tool analyzes your CV for ATS keywords, formatting, and provides a score to help you land your dream job." />
-            
+
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-24 text-center relative z-10">
                 <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{duration:0.7}}>
                     <Badge variant="outline" className="py-1 px-3 mb-4 border-blue-300 dark:border-blue-700">Powered by Gemini AI</Badge>
@@ -107,25 +107,25 @@ const LandingPage = () => {
                 <motion.div initial={{opacity:0,scale:0.8}} animate={{opacity:1,scale:1}} transition={{duration:0.7,delay:0.2}}>
                     <Button size="lg" className="rounded-full shadow-lg" onClick={()=>signInWithGoogle()}>Get Started for Free <ChevronRight className="h-5 w-5 ml-2"/></Button>
                 </motion.div>
-                
+
                 <div ref={ref} className="mt-24 md:mt-32 w-full text-left">
-                     <motion.h2 
-                         initial={{opacity:0, y:20}} 
+                     <motion.h2
+                         initial={{opacity:0, y:20}}
                          animate={isInView ? {opacity:1, y:0} : {}}
                          transition={{duration: 0.5}}
                          className="text-3xl font-bold text-center mb-8"
                      >
                          Why Choose Us?
                      </motion.h2>
-                    <motion.div 
+                    <motion.div
                         className="grid grid-cols-1 md:grid-cols-3 gap-8"
                         initial="hidden"
                         animate={isInView ? "visible" : "hidden"}
                         variants={{ visible: { transition: { staggerChildren: 0.2 } } }}
                     >
                         {features.map((feature, i) => (
-                            <motion.div 
-                                key={i} 
+                            <motion.div
+                                key={i}
                                 variants={{
                                     hidden: { opacity: 0, y: 30 },
                                     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
@@ -157,7 +157,7 @@ const Dashboard = () => {
     const [analysisData,setAnalysisData] = useState(null);
     const [loadingState,setLoadingState] = useState({docs:true,upload:false,analysis:false,delete:null});
     const fileInputRef = useRef(null);
-    
+
     const fetchDocuments = async() => {setLoadingState(p=>({...p,docs:true}));try{const{data}=await api.get('/pdfs');if(data.success)setDocuments(data.data)}catch(err){toast.error(err.response?.data?.message||"Failed to fetch docs.")}finally{setLoadingState(p=>({...p,docs:false}))}};
     const handleFileChange = (e) => {const selectedFile=e.target.files[0];if(selectedFile&&selectedFile.type==='application/pdf'){setFile(selectedFile)}else if(selectedFile){toast.error("Please select a PDF file.")}};
     const handleUpload = async() => {if(!file)return;setLoadingState(p=>({...p,upload:true}));const toastId=toast.loading("Uploading PDF...");const formData=new FormData();formData.append('pdf',file);try{const{data}=await api.post('/pdfs/upload',formData);if(data.success){toast.success("PDF uploaded! Analyzing...",{id:toastId});setFile(null);if(fileInputRef.current)fileInputRef.current.value="";await fetchDocuments();await analyzeDocument(data.data.document._id)}}catch(err){toast.error(err.response?.data?.message||'Upload failed.',{id:toastId})}finally{setLoadingState(p=>({...p,upload:false}))}};
@@ -185,7 +185,7 @@ const UploaderCard = ({ file, loading, onFileChange, onUpload, fileInputRef, set
     const handleDragOver = (e) => {e.preventDefault();setIsDragging(true)};
     const handleDragLeave = (e) => {e.preventDefault();setIsDragging(false)};
     const handleDrop = (e) => {e.preventDefault();setIsDragging(false);const droppedFile=e.dataTransfer.files[0];if(droppedFile&&droppedFile.type==='application/pdf'){onFileChange({target:{files:[droppedFile]}})}else if(droppedFile){toast.error("Please drop a PDF file only.")}};
-    
+
     return(
         <Card className={`shadow-lg hover:shadow-xl transition-shadow duration-300 relative z-10 ${loading?'opacity-50 pointer-events-none':''}`}>
             <CardHeader><CardTitle>Upload New Resume</CardTitle></CardHeader>
@@ -209,23 +209,56 @@ const UploaderCard = ({ file, loading, onFileChange, onUpload, fileInputRef, set
         </Card>
     );
 };
-const DocumentList=({documents,loading,deletingId,onAnalyze,onDelete})=>(
+
+// --- FIX APPLIED HERE: Added a Skeleton Loader for better UX ---
+const DocumentListSkeleton = () => (
+    <motion.div key="loader" className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+        {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-slate-100 dark:bg-slate-800/50">
+                <div className="flex items-center space-x-3 w-full animate-pulse">
+                    <div className="h-5 w-5 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                    <div className="h-4 w-3/5 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                </div>
+                <div className="flex items-center space-x-1 w-1/4 animate-pulse">
+                     <div className="h-8 w-full bg-slate-200 dark:bg-slate-700 rounded"></div>
+                </div>
+            </div>
+        ))}
+    </motion.div>
+);
+
+const DocumentList = ({ documents, loading, deletingId, onAnalyze, onDelete }) => (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 relative z-10">
         <CardHeader><CardTitle>Your Document Library</CardTitle></CardHeader>
         <CardContent>
             <motion.div className="max-h-96 min-h-[10rem] overflow-y-auto space-y-3 -m-2 p-2">
-                <AnimatePresence>
-                    {loading?<motion.div key="loader" className="flex justify-center items-center h-40"><Loader2 className="animate-spin text-violet-400 h-8 w-8"/></motion.div>:
-                    documents.length>0?(documents.map((doc,i)=>(<motion.div layout key={doc._id} initial={{opacity:0,y:-20}} animate={{opacity:1,y:0}} exit={{opacity:0,x:-20,transition:{duration:0.2}}} className="flex items-center justify-between p-3 rounded-lg bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors">
-                        <div className="flex items-center space-x-3 truncate"><FileText className="h-5 w-5 text-violet-400"/><span className="truncate font-medium text-sm">{doc.filename}</span></div>
-                        <div className="flex items-center space-x-1"><Button size="sm" variant="ghost" onClick={()=>onAnalyze(doc._id)}>Analyze</Button><Button size="icon" variant="ghost" onClick={()=>onDelete(doc._id)} disabled={deletingId===doc._id}>{deletingId===doc._id?<Loader2 className="h-4 w-4 animate-spin"/>:<Trash2 className="h-4 w-4 text-red-500/80 hover:text-red-500"/>}</Button></div>
-                    </motion.div>))):
-                    <motion.div key="empty" initial={{opacity:0}} animate={{opacity:1}} className="text-center p-8 text-slate-500 flex flex-col items-center h-40 justify-center"><FileText className="h-12 w-12 text-slate-700 mb-2"/>No documents yet.<br/>Upload one to begin.</motion.div>}
+                <AnimatePresence mode="wait">
+                    {loading ? <DocumentListSkeleton /> :
+                    documents.length > 0 ? (documents.map((doc) => (
+                        <motion.div layout key={doc._id} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }} className="flex items-center justify-between p-3 rounded-lg bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors">
+                            <div className="flex items-center space-x-3 truncate">
+                                <FileText className="h-5 w-5 text-violet-400" />
+                                <span className="truncate font-medium text-sm">{doc.filename}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                                <Button size="sm" variant="ghost" onClick={() => onAnalyze(doc._id)}>Analyze</Button>
+                                <Button size="icon" variant="ghost" onClick={() => onDelete(doc._id)} disabled={deletingId === doc._id}>
+                                    {deletingId === doc._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-red-500/80 hover:text-red-500" />}
+                                </Button>
+                            </div>
+                        </motion.div>
+                    ))) : (
+                        <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center p-8 text-slate-500 flex flex-col items-center h-40 justify-center">
+                            <FileText className="h-12 w-12 text-slate-700 mb-2" />
+                            No documents yet.<br />Upload one to begin.
+                        </motion.div>
+                    )}
                 </AnimatePresence>
             </motion.div>
         </CardContent>
     </Card>
 );
+
 const AnalysisPanel=({loading,data})=>(<Card className="shadow-xl min-h-full sticky top-24"><CardHeader><CardTitle>AI Analysis Report</CardTitle></CardHeader><CardContent className="pt-2"><AnimatePresence mode="wait">{loading?<LoadingAnalysis key="loading"/>:data?<AnalysisResult key="data" data={data}/>:<PlaceholderAnalysis key="placeholder"/>}</AnimatePresence></CardContent></Card>);
 const LoadingAnalysis=()=>(<motion.div className="flex flex-col items-center justify-center h-96" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}><motion.div className="h-16 w-16 text-violet-500" animate={{rotate:360}} transition={{duration:1,repeat:Infinity,ease:"linear"}}><Cpu/></motion.div><p className="font-semibold text-lg mt-4">Gemini AI is analyzing...</p><p className="text-sm text-slate-500">This might take a moment.</p></motion.div>);
 const PlaceholderAnalysis=()=>(<motion.div className="flex flex-col items-center justify-center h-96 text-slate-600" initial={{opacity:0}} animate={{opacity:1,transition:{delay:0.2}}} exit={{opacity:0}}><BarChart4 className="h-20 w-20 mb-4 opacity-50"/><p className="text-lg font-medium text-center">Your report will appear here.</p><p className="text-sm text-center">Upload or select a document to begin.</p></motion.div>);
@@ -240,7 +273,7 @@ const AnalysisResult = ({ data }) => (
             </CardDescription>
             <p className="text-7xl font-bold">{data.analysis.overallScore}<span className="text-2xl text-slate-500">/100</span></p>
         </motion.div>
-        
+
         {/* Strengths */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }}>
             <Card className="bg-slate-50 dark:bg-slate-800/50">
@@ -256,7 +289,7 @@ const AnalysisResult = ({ data }) => (
                 </CardContent>
             </Card>
         </motion.div>
-        
+
         {/* Improvements */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.3 } }}>
             <Card className="bg-slate-50 dark:bg-slate-800/50">
